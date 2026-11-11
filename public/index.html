@@ -1,32 +1,156 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hello, World!</title>
-	</head>
-	<body>
-		<h1 id="heading"></h1>
-		<p>This page comes from a static asset stored at `public/index.html` as configured in `wrangler.jsonc`.</p>
-		<button id="button" type="button">Fetch a random UUID</button>
-		<output id="random" for="button"></output>
-		<script>
-			fetch('/message')
-				.then((resp) => resp.text())
-				.then((text) => {
-					const h1 = document.getElementById('heading');
-					h1.textContent = text;
-				});
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SesgoScan | Auditoría Ética de Datos</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: var(--card);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 { margin-top: 0; color: var(--primary); text-align: center; }
+        p.subtitle { text-align: center; font-size: 0.9rem; color: #94a3b8; margin-bottom: 2rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 0.85rem; margin-bottom: 0.5rem; color: #cbd5e1; }
+        input {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 6px;
+            outline: none;
+        }
+        input:focus { border-color: var(--primary); }
+        button {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 1rem;
+        }
+        button:hover { background-color: #2563eb; }
+        #resultado {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 6px;
+            display: none;
+            background-color: #0f172a;
+            border-left: 4px solid var(--primary);
+        }
+        .alerta { border-left-color: var(--danger) !important; }
+        .ok { border-left-color: var(--success) !important; }
+        .ia-text { font-style: italic; color: #cbd5e1; font-size: 0.9rem; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SesgoScan</h1>
+        <p class="subtitle">Auditoría Ética de Decisiones con IA</p>
 
-			const button = document.getElementById("button");
-			button.addEventListener("click", () => {
-				fetch('/random')
-					.then((resp) => resp.text())
-					.then((text) => {
-						const random = document.getElementById('random');
-						random.textContent = text;
-					});
-			});
-		</script>
-	</body>
+        <form id="auditoriaForm">
+            <div class="grid">
+                <div class="form-group">
+                    <label>Grupo A (Aprobados)</label>
+                    <input type="number" id="a_aprobados" required min="0" value="60">
+                </div>
+                <div class="form-group">
+                    <label>Grupo A (Total)</label>
+                    <input type="number" id="a_total" required min="1" value="100">
+                </div>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Grupo B (Aprobados)</label>
+                    <input type="number" id="b_aprobados" required min="0" value="30">
+                </div>
+                <div class="form-group">
+                    <label>Grupo B (Total)</label>
+                    <input type="number" id="b_total" required min="1" value="100">
+                </div>
+            </div>
+            <button type="submit">Analizar Sesgo</button>
+        </form>
+
+        <div id="resultado">
+            <strong id="veredicto-titulo"></strong>
+            <div class="ia-text" id="ia-explicacion"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('auditoriaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const resultadoDiv = document.getElementById('resultado');
+            const titulo = document.getElementById('veredicto-titulo');
+            const explicacion = document.getElementById('ia-explicacion');
+            
+            btn.textContent = 'Analizando con IA...';
+            btn.disabled = true;
+            resultadoDiv.style.display = 'none';
+
+            const data = {
+                a_aprobados: parseInt(document.getElementById('a_aprobados').value),
+                a_total: parseInt(document.getElementById('a_total').value),
+                b_aprobados: parseInt(document.getElementById('b_aprobados').value),
+                b_total: parseInt(document.getElementById('b_total').value)
+            };
+
+            try {
+                const response = await fetch('/api/analizar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.exito) {
+                    resultadoDiv.style.display = 'block';
+                    resultadoDiv.className = result.metricas.alerta_sesgo ? 'alerta' : 'ok';
+                    titulo.textContent = result.metricas.alerta_sesgo 
+                        ? '⚠️ Alerta de Sesgo Detectada' 
+                        : '✅ Paridad Aceptable';
+                    explicacion.textContent = result.veredicto;
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error de conexión con el servidor.');
+            } finally {
+                btn.textContent = 'Analizar Sesgo';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
 </html>
